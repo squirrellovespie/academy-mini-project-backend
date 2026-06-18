@@ -1,10 +1,12 @@
 import express from "express";
-// test commit
+import expenseRouter from "./routes/expenseRouter.js";
+
 const app = express();
 const PORT = 3000;
 
 // Middleware
 app.use(express.json());
+app.use(expenseRouter);
 
 // Root endpoint
 app.get("/", (req, res) => {
