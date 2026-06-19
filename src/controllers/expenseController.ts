@@ -1,75 +1,97 @@
-import {request, response} from "express";
-import {ExpenseService} from "../services/expenseService.js";
+import { Request, Response } from "express";
+import { ExpenseService } from "../services/expenseService.js";
+import { createExpenseRequestDto, expenseResponseDto } from "../dtos/expenseDto.js";
 
-const expenseService = new ExpenseService();
+export class ExpenseController {
 
-export const getAll = async (req: typeof request, res: typeof response) => {
-    try {
-        const expenses = await expenseService.findAll();
-        res.status(200).json({ message: "Expenses retrieved successfully", data: expenses });
-    } catch (error) {
-        res.status(500).json({ message: "Error retrieving expenses"});
-    }
-};
+    constructor(private expenseService: ExpenseService = new ExpenseService()) {}
 
-export const getById = async (req: typeof request, res: typeof response) => {
-    const { id } = req.params;
-    try {
-        const expense = await expenseService.findById(Number(id));
-        if (!expense) {
-            return res.status(404).json({ message: "Expense not found" });
+    async getAll(req: Request, res: Response): Promise<void> {
+        const expenses = await this.expenseService.findAll();
+        const expensesDto: expenseResponseDto[] = expenses.map(expense => ({
+            id: expense.id,
+            date: expense.date,
+            description: expense.description,
+            user: expense.user
+        }));
+        res.status(200).json({ message: "Expenses retrieved successfully", data: expensesDto });
+    };
+
+    async getById(req: Request, res: Response): Promise<void> {
+        const { id } = req.params;
+            const expense = await this.expenseService.findById(Number(id));
+            if (!expense) {
+                res.status(404).json({ message: "Expense not found" });
+                return;
+            }
+            const expenseDto: expenseResponseDto = {
+                id: expense.id,
+                date: expense.date,
+                description: expense.description,
+                user: expense.user
+            };
+            res.status(200).json({ message: "Expense retrieved successfully", data: expenseDto });
+    };
+
+    async create(req: Request, res: Response): Promise<void> {
+        const { date, description, user } = req.body;
+        if (!date || !description || !user) {
+            res.status(400).json({ message: "Missing required fields: date, description, user" });
+            return;
         }
-        res.status(200).json({ message: "Expense retrieved successfully", data: expense });
-    } catch (error) {
-        res.status(500).json({ message: "Error retrieving expense" });
-    }
-};
+        const requestDto: createExpenseRequestDto = { date, description, user };
+        const newExpense = await this.expenseService.create(requestDto);
+        const expenseDto: expenseResponseDto = {
+                id: newExpense.id,
+                date: newExpense.date,
+                description: newExpense.description,
+                user: newExpense.user
+            };
+        res.status(201).json({ message: "Expense created successfully", data: expenseDto });
 
-export const create = async (req: typeof request, res: typeof response) => {
-    const { date, description, user } = req.body;
-    if (!date || !description || !user) {
-        return res.status(400).json({ message: "Missing required fields: date, description, user" });
-    }
-    try {
-        const newExpense = await expenseService.create(date, description, user);
-        res.status(201).json({ message: "Expense created successfully", data: newExpense });
-    } catch (error) {
-        res.status(500).json({ message: "Error creating expense" });
-    }
-};
+    };
 
-export const update = async (req: typeof request, res: typeof response) => {
-    const { id } = req.params;
-    const { date, description, user } = req.body;
-    if (!date || !description || !user) {
-        return res.status(400).json({ message: "Missing required fields: date, description, user" });
-    }
-    if (isNaN(Number(id))) {
-        return res.status(400).json({ message: "Invalid expense ID" });
-    }
-    try {
-        const updatedExpense = await expenseService.update(Number(id), date, description, user);
-        res.status(200).json({ message: "Expense updated successfully", data: updatedExpense });
-    } catch (error) {
-        if (error instanceof Error && error.message === "Expense not found") {
-            return res.status(404).json({ message: "Expense not found" });
+    async update(req: Request, res: Response): Promise<void> {
+        const { id } = req.params;
+        const { date, description, user } = req.body;
+        if (!date || !description || !user) {
+            res.status(400).json({ message: "Missing required fields: date, description, user" });
+            return;
         }
-        res.status(500).json({ message: "Error updating expense" });
-    }
-};
-
-export const deleteExpense = async (req: typeof request, res: typeof response) => {
-    const { id } = req.params;
-    if (isNaN(Number(id))) {
-        return res.status(400).json({ message: "Invalid expense ID" });
-    }
-    try {
-        await expenseService.deleteExpense(Number(id));
-        res.status(200).json({ message: "Expense deleted successfully" });
-    } catch (error) {
-        if (error instanceof Error && error.message === "Expense not found") {
-            return res.status(404).json({ message: "Expense not found" });
+        if (isNaN(Number(id))) {
+            res.status(400).json({ message: "Invalid expense ID" });
+            return;
         }
-        res.status(500).json({ message: "Error deleting expense" });
-    }
-};
+        const requestDto: createExpenseRequestDto = { date, description, user };
+        const updatedExpense = await this.expenseService.update(Number(id), requestDto);
+        if (!updatedExpense) {
+            res.status(404).json({ message: "Expense not found" });
+            return;
+        }
+        const expenseDto: expenseResponseDto = {
+                id: updatedExpense.id,
+                date: updatedExpense.date,
+                description: updatedExpense.description,
+                user: updatedExpense.user
+            };
+        res.status(200).json({ message: "Expense updated successfully", data: expenseDto });
+    };
+
+    async delete(req: Request, res: Response): Promise<void> {
+        const { id } = req.params;
+        if (isNaN(Number(id))) {
+            res.status(400).json({ message: "Invalid expense ID" });
+            return;
+        }
+        try {
+            await this.expenseService.deleteExpense(Number(id));
+            res.status(200).json({ message: "Expense deleted successfully" });
+        } catch (error) {
+            if (error instanceof Error && error.message === "Expense not found") {
+                res.status(404).json({ message: "Expense not found" });
+                return;
+            }
+            res.status(500).json({ message: "Error deleting expense" });
+        }
+    };
+}
