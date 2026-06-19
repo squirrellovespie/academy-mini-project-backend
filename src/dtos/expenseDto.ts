@@ -11,6 +11,10 @@ export const idParamSchema = z.object({
     id: z.coerce.number().int().positive("ID must be a positive integer"),
 });
 
+export const querySchema = z.object({
+    minAmount: z.coerce.number().min(0, "Minimum amount must be a non-negative number").optional(),
+});
+
 
 export type createExpenseRequestDto = z.infer<typeof createExpenseSchema>;
 
@@ -28,3 +32,5 @@ export type amountExpenseResponseDto = {
     user: string;
     amount: number;
 };
+
+export type minAmountQueryDto = z.infer<typeof querySchema>;

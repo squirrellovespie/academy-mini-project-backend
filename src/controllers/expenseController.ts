@@ -1,13 +1,14 @@
 import { Request, Response } from "express";
 import { ExpenseService } from "../services/expenseService.js";
-import { AmountExpenseResponseDto, createExpenseRequestDto, expenseResponseDto } from "../dtos/expenseDto.js";
+import { amountExpenseResponseDto, createExpenseRequestDto, expenseResponseDto } from "../dtos/expenseDto.js";
 
 export class ExpenseController {
 
     constructor(private expenseService: ExpenseService = new ExpenseService()) {}
 
     async getAll(req: Request, res: Response): Promise<void> {
-        const expenses = await this.expenseService.findAll();
+        const minAmount = req.query.minAmount ? Number(req.query.minAmount) : undefined;
+        const expenses = await this.expenseService.findAll(minAmount);
         const expensesDto: expenseResponseDto[] = expenses.map(expense => ({
             id: expense.id,
             date: expense.date,
@@ -40,14 +41,14 @@ export class ExpenseController {
                 res.status(404).json({ message: "Expense not found" });
                 return;
             }
-            const AmountExpenseDto: AmountExpenseResponseDto = {
+            const amountExpenseDto: amountExpenseResponseDto = {
                 id: expense.id,
                 date: expense.date,
                 description: expense.description,
                 user: expense.user,
                 amount: expense.amount
             };
-            res.status(200).json({ message: "Expense details retrieved successfully", data: AmountExpenseDto });
+            res.status(200).json({ message: "Expense details retrieved successfully", data: amountExpenseDto });
     };
 
     async create(req: Request, res: Response): Promise<void> {

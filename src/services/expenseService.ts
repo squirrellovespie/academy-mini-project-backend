@@ -8,7 +8,10 @@ const expenses: Expense[] = [
 ];
 
 export class ExpenseService {
-    async findAll(): Promise<Expense[]> {
+    async findAll(minAmount?: number): Promise<Expense[]> {
+        if (minAmount !== undefined) {
+            return expenses.filter(e => e.amount >= minAmount);
+        }
         return expenses;
     }
     async findById(id: number): Promise<Expense | undefined> {
