@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { ExpenseService } from "../services/expenseService.js";
-import { createExpenseRequestDto, expenseResponseDto } from "../dtos/expenseDto.js";
+import { AmountExpenseResponseDto, createExpenseRequestDto, expenseResponseDto } from "../dtos/expenseDto.js";
 
 export class ExpenseController {
 
@@ -33,13 +33,30 @@ export class ExpenseController {
             res.status(200).json({ message: "Expense retrieved successfully", data: expenseDto });
     };
 
+    async getDetailsById(req: Request, res: Response): Promise<void> {
+        const { id } = req.params;
+            const expense = await this.expenseService.findById(Number(id));
+            if (!expense) {
+                res.status(404).json({ message: "Expense not found" });
+                return;
+            }
+            const AmountExpenseDto: AmountExpenseResponseDto = {
+                id: expense.id,
+                date: expense.date,
+                description: expense.description,
+                user: expense.user,
+                amount: expense.amount
+            };
+            res.status(200).json({ message: "Expense details retrieved successfully", data: AmountExpenseDto });
+    };
+
     async create(req: Request, res: Response): Promise<void> {
-        const { date, description, user } = req.body;
-        if (!date || !description || !user) {
-            res.status(400).json({ message: "Missing required fields: date, description, user" });
+        const { date, description, user, amount } = req.body;
+        if (!date || !description || !user || amount === undefined) {
+            res.status(400).json({ message: "Missing required fields: date, description, user, amount" });
             return;
         }
-        const requestDto: createExpenseRequestDto = { date, description, user };
+        const requestDto: createExpenseRequestDto = { date, description, user, amount };
         const newExpense = await this.expenseService.create(requestDto);
         const expenseDto: expenseResponseDto = {
                 id: newExpense.id,
@@ -53,16 +70,16 @@ export class ExpenseController {
 
     async update(req: Request, res: Response): Promise<void> {
         const { id } = req.params;
-        const { date, description, user } = req.body;
-        if (!date || !description || !user) {
-            res.status(400).json({ message: "Missing required fields: date, description, user" });
+        const { date, description, user, amount } = req.body;
+        if (!date || !description || !user || amount === undefined) {
+            res.status(400).json({ message: "Missing required fields: date, description, user, amount" });
             return;
         }
         if (isNaN(Number(id))) {
             res.status(400).json({ message: "Invalid expense ID" });
             return;
         }
-        const requestDto: createExpenseRequestDto = { date, description, user };
+        const requestDto: createExpenseRequestDto = { date, description, user, amount };
         const updatedExpense = await this.expenseService.update(Number(id), requestDto);
         if (!updatedExpense) {
             res.status(404).json({ message: "Expense not found" });
