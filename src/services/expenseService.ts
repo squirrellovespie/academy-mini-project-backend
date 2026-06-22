@@ -28,7 +28,7 @@ export class ExpenseService {
         const { date, description, user, amount } = createExpenseRequestDto;
         const expenseIndex = expenses.findIndex(e => e.id === id);
         if (expenseIndex === -1) {
-            throw new Error("Expense not found");
+            return undefined;
         }
         expenses[expenseIndex] = { id: id, date, description, user, amount};
         return expenses[expenseIndex];
@@ -36,7 +36,7 @@ export class ExpenseService {
     async deleteExpense(id: number): Promise<boolean> {
         const expenseIndex = expenses.findIndex(e => e.id === id);
         if (expenseIndex === -1) {
-            throw new Error("Expense not found");
+            return false;
         }
         const deletedExpense = expenses.splice(expenseIndex, 1);
         return deletedExpense.length > 0;

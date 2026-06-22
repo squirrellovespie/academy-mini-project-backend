@@ -4,9 +4,10 @@ import { amountExpenseResponseDto, createExpenseRequestDto, expenseResponseDto }
 
 export class ExpenseController {
 
-    constructor(private expenseService: ExpenseService = new ExpenseService()) {}
+    constructor(private readonly expenseService: ExpenseService) {}
 
     async getAll(req: Request, res: Response): Promise<void> {
+        try {
         const minAmount = req.query.minAmount ? Number(req.query.minAmount) : undefined;
         const expenses = await this.expenseService.findAll(minAmount);
         const expensesDto: expenseResponseDto[] = expenses.map(expense => ({
@@ -16,11 +17,20 @@ export class ExpenseController {
             user: expense.user
         }));
         res.status(200).json({ message: "Expenses retrieved successfully", data: expensesDto });
-    };
+        } catch (error) {
+            res.status(500).json({ message: "Internal server error" });
+        }
+    }
 
     async getById(req: Request, res: Response): Promise<void> {
-        const { id } = req.params;
-            const expense = await this.expenseService.findById(Number(id));
+        try {
+            const { id } = req.params;
+            const idNumber = Number(id);
+            if (isNaN(idNumber)) {
+                res.status(400).json({ message: "Invalid ID format" });
+                return;
+            }
+            const expense = await this.expenseService.findById(idNumber);
             if (!expense) {
                 res.status(404).json({ message: "Expense not found" });
                 return;
@@ -32,6 +42,9 @@ export class ExpenseController {
                 user: expense.user
             };
             res.status(200).json({ message: "Expense retrieved successfully", data: expenseDto });
+        } catch (error) {
+            res.status(500).json({ message: "Internal server error" });
+        }
     };
 
     async getDetailsById(req: Request, res: Response): Promise<void> {
@@ -52,47 +65,55 @@ export class ExpenseController {
     };
 
     async create(req: Request, res: Response): Promise<void> {
-        const { date, description, user, amount } = req.body;
-        if (!date || !description || !user || amount === undefined) {
-            res.status(400).json({ message: "Missing required fields: date, description, user, amount" });
-            return;
-        }
-        const requestDto: createExpenseRequestDto = { date, description, user, amount };
-        const newExpense = await this.expenseService.create(requestDto);
-        const expenseDto: expenseResponseDto = {
+        try {
+            const { date, description, user, amount } = req.body;
+            if (!date || !description || !user || amount === undefined) {
+                res.status(400).json({ message: "Missing required fields: date, description, user, amount" });
+                return;
+            }
+            const requestDto: createExpenseRequestDto = { date, description, user, amount };
+            const newExpense = await this.expenseService.create(requestDto);
+            const expenseDto: expenseResponseDto = {
                 id: newExpense.id,
                 date: newExpense.date,
                 description: newExpense.description,
                 user: newExpense.user
             };
-        res.status(201).json({ message: "Expense created successfully", data: expenseDto });
+            res.status(201).json({ message: "Expense created successfully", data: expenseDto });
+        } catch (error) {
+            res.status(500).json({ message: "Internal server error" });
+        }
 
     };
 
     async update(req: Request, res: Response): Promise<void> {
-        const { id } = req.params;
-        const { date, description, user, amount } = req.body;
-        if (!date || !description || !user || amount === undefined) {
-            res.status(400).json({ message: "Missing required fields: date, description, user, amount" });
-            return;
-        }
-        if (isNaN(Number(id))) {
-            res.status(400).json({ message: "Invalid expense ID" });
-            return;
-        }
-        const requestDto: createExpenseRequestDto = { date, description, user, amount };
-        const updatedExpense = await this.expenseService.update(Number(id), requestDto);
-        if (!updatedExpense) {
-            res.status(404).json({ message: "Expense not found" });
-            return;
-        }
-        const expenseDto: expenseResponseDto = {
+        try {
+            const { id } = req.params;
+            const { date, description, user, amount } = req.body;
+            if (!date || !description || !user || amount === undefined) {
+                res.status(400).json({ message: "Missing required fields: date, description, user, amount" });
+                return;
+            }
+            if (isNaN(Number(id))) {
+                res.status(400).json({ message: "Invalid expense ID" });
+                return;
+            }
+            const requestDto: createExpenseRequestDto = { date, description, user, amount };
+            const updatedExpense = await this.expenseService.update(Number(id), requestDto);
+            if (!updatedExpense) {
+                res.status(404).json({ message: "Expense not found" });
+                return;
+            }
+            const expenseDto: expenseResponseDto = {
                 id: updatedExpense.id,
                 date: updatedExpense.date,
                 description: updatedExpense.description,
                 user: updatedExpense.user
             };
-        res.status(200).json({ message: "Expense updated successfully", data: expenseDto });
+            res.status(200).json({ message: "Expense updated successfully", data: expenseDto });
+        } catch (error) {
+            res.status(500).json({ message: "Internal server error" });
+        }
     };
 
     async delete(req: Request, res: Response): Promise<void> {
@@ -102,14 +123,14 @@ export class ExpenseController {
             return;
         }
         try {
-            await this.expenseService.deleteExpense(Number(id));
-            res.status(200).json({ message: "Expense deleted successfully" });
-        } catch (error) {
-            if (error instanceof Error && error.message === "Expense not found") {
+            const deleted = await this.expenseService.deleteExpense(Number(id));
+            if (!deleted) {
                 res.status(404).json({ message: "Expense not found" });
                 return;
             }
-            res.status(500).json({ message: "Error deleting expense" });
+            res.status(204).send();
+        } catch (error) {
+            res.status(500).json({ message: "Internal server error" });
         }
     };
 }

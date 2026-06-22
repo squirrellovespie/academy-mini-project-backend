@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { ExpenseController } from "../controllers/expenseController.js";
+import { ExpenseService } from "../services/expenseService.js";
 import { validateParams, validateBody, validateQuery } from "../middleware/validate.js";
 import { createExpenseSchema, idParamSchema, querySchema } from "../dtos/expenseDto.js";
 
-const controller = new ExpenseController();
+
+const controller = new ExpenseController(new ExpenseService());
 
 const router = Router();
 
